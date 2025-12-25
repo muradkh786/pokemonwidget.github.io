@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PokéDrift</title>
+  <style>
+    :root {
+      --card: rgba(255,255,255,.10);
+      --stroke: rgba(255,255,255,.18);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --shadow: 0 20px 70px rgba(0,0,0,.45);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: var(--text);
+      overflow: hidden;
+      background: radial-gradient(1200px 700px at 30% 20%, rgba(255,255,255,.10), transparent 60%),
+                  radial-gradient(1000px 600px at 70% 80%, rgba(255,255,255,.12), transparent 55%),
+                  linear-gradient(135deg, #141414, #0b1020);
+    }
+
+    /* Soft animated aura */
+    .aura {
+      position: fixed; inset: -30%;
+      filter: blur(40px) saturate(1.2);
+      opacity: .65;
+      background: radial-gradient(circle at 25% 30%, var(--a1), transparent 55%),
+                  radial-gradient(circle at 75% 70%, var(--a2), transparent 55%),
+                  radial-gradient(circle at 60% 20%, var(--a3), transparent 55%);
+      animation: drift 10s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    @keyframes drift {
+      from { transform: translate3d(-2%, -2%, 0) scale(1.02); }
+      to   { transform: translate3d( 2%,  2%, 0) scale(1.05); }
+    }
+
+    .wrap {
+      position: relative;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(560px, 94vw);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .top {
+      padding: 18px 18px 10px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .title {
+      font-size: 18px;
+      letter-spacing: .2px;
+      font-weight: 650;
+    }
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .art {
+      display: grid;
+      place-items: center;
+      padding: 10px 18px 4px;
+    }
+
+    .frame {
+      width: 100%;
+      border-radius: 18px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 18px;
+      display: grid;
+      place-items: center;
+      min-height: 320px;
+      position: relative;
+    }
+
+    img {
+      width: min(360px, 70vw);
+      height: auto;
+      image-rendering: auto;
+      filter: drop-shadow(0 22px 30px rgba(0,0,0,.35));
+      transform: translateZ(0);
+      opacity: 0;
+      transition: opacity .28s ease;
+    }
+    img.loaded { opacity: 1; }
+
+    .meta {
+      padding: 10px 18px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.88);
+    }
+
+    .btns { display: flex; gap: 10px; align-items: center; }
+    button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      user-select: none;
+    }
+    button:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.28); }
+    button:active { transform: translateY(1px); }
+    .tiny { font-weight: 600; font-size: 12px; padding: 10px 10px; }
+
+    .status {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,.70);
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    /* Makes it look good in tight iframe heights too */
+    @media (max-height: 520px) {
+      .frame { min-height: 240px; }
+      img { width: min(300px, 62vw); }
+    }
+  </style>
+</head>
+<body>
+  <div class="aura" id="aura"></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="title" id="name">Loading…</div>
+          <div class="sub" id="dex">—</div>
+        </div>
+        <div class="sub" id="timer">Auto: 5s</div>
+      </div>
+
+      <div class="art">
+        <div class="frame">
+          <img id="img" alt="Pokémon artwork" />
+          <div class="status" id="status">Fetching…</div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="chips" id="chips"></div>
+        <div class="btns">
+          <button class="tiny" id="toggle">Pause</button>
+          <button id="next">Next Pokémon</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const els = {
+    aura: document.getElementById("aura"),
+    name: document.getElementById("name"),
+    dex: document.getElementById("dex"),
+    img: document.getElementById("img"),
+    chips: document.getElementById("chips"),
+    status: document.getElementById("status"),
+    toggle: document.getElementById("toggle"),
+    next: document.getElementById("next"),
+    timer: document.getElementById("timer"),
+  };
+
+  // Robust: fetch the current Pokémon count from PokéAPI instead of hard-coding 1010/1025/etc.
+  let maxId = 1025; // fallback until count loads
+  let intervalMs = 5000;
+  let running = true;
+  let tickHandle = null;
+
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+  function setAura() {
+    // Aesthetic: pick 3 harmonious-ish hues (no external libs)
+    const h = Math.floor(Math.random() * 360);
+    const h2 = (h + 55) % 360;
+    const h3 = (h + 160) % 360;
+    document.documentElement.style.setProperty("--a1", `hsla(${h}, 80%, 60%, .55)`);
+    document.documentElement.style.setProperty("--a2", `hsla(${h2}, 80%, 60%, .55)`);
+    document.documentElement.style.setProperty("--a3", `hsla(${h3}, 80%, 60%, .55)`);
+  }
+
+  async function initCount() {
+    try {
+      const r = await fetch("https://pokeapi.co/api/v2/pokemon?limit=1");
+      const j = await r.json();
+      if (typeof j.count === "number" && j.count > 0) maxId = j.count;
+    } catch (_) {
+      // keep fallback
+    }
+  }
+
+  function randomId() {
+    return Math.floor(Math.random() * maxId) + 1;
+  }
+
+  function chooseArtwork(pokemonJson) {
+    // Prefer official artwork if available
+    const art =
+      pokemonJson?.sprites?.other?.["official-artwork"]?.front_default ||
+      pokemonJson?.sprites?.other?.home?.front_default ||
+      pokemonJson?.sprites?.front_default;
+
+    return art || null;
+  }
+
+  async function loadPokemon(forceId = null) {
+    const id = forceId ?? randomId();
+    els.status.textContent = "Fetching…";
+    els.img.classList.remove("loaded");
+
+    setAura();
+
+    try {
+      const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const p = await r.json();
+
+      const name = cap(p.name);
+      els.name.textContent = name;
+      els.dex.textContent = `National Dex #${String(p.id).padStart(4, "0")}`;
+
+      // types as chips
+      els.chips.innerHTML = "";
+      (p.types || [])
+        .sort((a,b) => a.slot - b.slot)
+        .forEach(t => {
+          const span = document.createElement("span");
+          span.className = "chip";
+          span.textContent = cap(t.type.name);
+          els.chips.appendChild(span);
+        });
+
+      const artUrl = chooseArtwork(p);
+      if (!artUrl) {
+        els.status.textContent = "No artwork found (rare).";
+        els.img.removeAttribute("src");
+        return;
+      }
+
+      // Swap image cleanly
+      await new Promise((resolve, reject) => {
+        els.img.onload = () => resolve();
+        els.img.onerror = () => reject(new Error("Image failed"));
+        els.img.src = artUrl;
+      });
+
+      els.img.classList.add("loaded");
+      els.status.textContent = "Updated";
+      setTimeout(() => (els.status.textContent = running ? "Auto-running" : "Paused"), 900);
+
+    } catch (e) {
+      els.status.textContent = "Fetch failed — trying again…";
+      // small retry
+      setTimeout(() => loadPokemon(), 800);
+    }
+  }
+
+  function startLoop() {
+    stopLoop();
+    tickHandle = setInterval(() => {
+      if (running) loadPokemon();
+    }, intervalMs);
+  }
+
+  function stopLoop() {
+    if (tickHandle) clearInterval(tickHandle);
+    tickHandle = null;
+  }
+
+  els.next.addEventListener("click", () => loadPokemon());
+  els.toggle.addEventListener("click", () => {
+    running = !running;
+    els.toggle.textContent = running ? "Pause" : "Resume";
+    els.status.textContent = running ? "Auto-running" : "Paused";
+  });
+
+  // init
+  (async function boot() {
+    await initCount();
+    els.timer.textContent = `Auto: ${Math.round(intervalMs/1000)}s`;
+    await loadPokemon();
+    startLoop();
+  })();
+</script>
+</body>
+</html>
